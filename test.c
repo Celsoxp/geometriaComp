@@ -16,8 +16,14 @@ typedef struct point_2d
 {
     double x;
     double y;
-
 } point2d;
+
+typedef struct polygon
+{
+	int n;
+    point2d at;
+	struct polygon *next;
+} polygon;
 
 /* Defines. */
 #define MAXNPTS 1000
@@ -43,65 +49,35 @@ int left(point2d a,point2d b,point2d c){
 	return AreaTri(a,b,c)>0;
 }
 
+int lefton(point2d a,point2d b,point2d c){
+	return AreaTri(a,b,c)>=0;
+}
+
 int colin(point2d a,point2d b,point2d c){
 	return AreaTri(a,b,c)==0;
 }
 
-
-void Reshape(int w, int h){
-
-   glViewport(0, 0, (GLsizei) w, (GLsizei) h);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluOrtho2D(0.0, 512.0, 0.0, 512.0);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   winwidth  = w;
-   winheight = h;
+int intersecP(point2d a,point2d b,point2d c,point2d d){
+	return (left(a, b, c)!=left(a, b, d)) && (left(c,d,a)!=left(c,d,b));
 }
 
-void Keyboard(unsigned char key, int x, int y){
-
-    switch (key){
-        case 27:
-            exit(0);
-            break;
-        case 'q':
-        case 'Q':
-            exit(0);
-            break;
-    }
+int intersecI(point2d a,point2d b,point2d c,point2d d){
+	return colin(a, b, c) || colin(a, b, d) || colin(c,d,a) || colin(c,d,b);
 }
 
-void Mouse(int button, int state, int x, int y)
-{
-    switch (button)
-    {
-        case GLUT_LEFT_BUTTON:
-            if (state == GLUT_DOWN)
-            {
-                if (npts < MAXNPTS)
-                {
-		    points[npts].x = x;
-                    points[npts].y = 512.0-y;
-		    printf("(%f,%f)\n", points[npts].x, points[npts].y);
-                    npts++;
-                }
-                
-                glutPostRedisplay();
-            }
-            break;
-        case GLUT_RIGHT_BUTTON:
-            if (state == GLUT_DOWN)
-            {
-                npts = 0;
-                glutPostRedisplay();
-            }
-            break;
-        default:
-            break;
-    }
+int intersecIP(point2d a,point2d b,point2d c,point2d d){
+	return (lefton(a, b, c)!=lefton(a, b, d)) && (lefton(c,d,a)!=lefton(c,d,b));
+}
+
+int polyIntersec(polygon *p, point2d a, point2d b){
+	polygon *aux;
+	for(aux=p;aux->next!=p;aux=aux->next){
+		if(intersecIP(a,b,aux->at,aux->next->at))
+			return 1;
+	}
+	if(intersecIP(a,b,aux->at,aux->next->at))
+		return 1;
+	return 0;
 }
 
 void DrawPoints()
@@ -140,6 +116,71 @@ void DrawTriangles(){
 	}
     glEnd();
 }
+
+void Reshape(int w, int h){
+
+   glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+   glMatrixMode(GL_PROJECTION);
+   glLoadIdentity();
+   gluOrtho2D(0.0, 512.0, 0.0, 512.0);
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+
+   winwidth  = w;
+   winheight = h;
+}
+
+void Keyboard(unsigned char key, int x, int y){
+
+    switch (key){
+        case 27:
+            exit(0);
+            break;
+        case 'q':
+        case 'Q':
+            exit(0);
+            break;
+        case 't':
+			DrawTriangles();
+			break;
+		case 'i':
+			if(npts>3){
+				if(intersecIP(points[npts-1],points[npts-2],points[npts-3],points[npts-4]))
+					printf("\n Oh yeah bro \n");
+			}
+			break;
+    }
+}
+
+void Mouse(int button, int state, int x, int y)
+{
+    switch (button)
+    {
+        case GLUT_LEFT_BUTTON:
+            if (state == GLUT_DOWN)
+            {
+                if (npts < MAXNPTS)
+                {
+		    points[npts].x = x;
+                    points[npts].y = 512.0-y;
+		    printf("(%f,%f)\n", points[npts].x, points[npts].y);
+                    npts++;
+                }
+                
+                glutPostRedisplay();
+            }
+            break;
+        case GLUT_RIGHT_BUTTON:
+            if (state == GLUT_DOWN)
+            {
+                npts = 0;
+                glutPostRedisplay();
+            }
+            break;
+        default:
+            break;
+    }
+}
     
 void Display(void){
     
@@ -147,7 +188,7 @@ void Display(void){
     glClear(GL_COLOR_BUFFER_BIT);
    
     /* Draw. */
-    DrawTriangles();
+    DrawLines();
     DrawPoints();
 
     glFlush();
